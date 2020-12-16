@@ -11,6 +11,7 @@ require (
 	github.com/go-xorm/xorm v0.7.9
 	github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c // indirect
 	github.com/xdg/stringprep v1.0.0 // indirect
+	github.com/mattn/go-sqlite3 v1.14.5
 	go.mongodb.org/mongo-driver v1.1.3
 	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22

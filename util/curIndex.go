@@ -14,6 +14,7 @@ type (
 		Price    float64 `json:"price"`
 		Turnover float64 `json:"turnover"`
 		Volume   float64 `json:"volume"`
+		Percent  float64 `json:"percent"`
 	}
 	curIndex struct {
 		sli map[string]*jsonCurIndex
@@ -44,6 +45,14 @@ func (this *curIndex) GetTurnover(id string) float64 {
 	return 0
 }
 
+func (this *curIndex) GetPercent(id string) float64 {
+	for _, v := range this.sli {
+		if v.Id == id {
+			return v.Percent
+		}
+	}
+	return 0
+}
 func (this *curIndex) GetPrice(id string) float64 {
 	for _, v := range this.sli {
 		if v.Id == id {
@@ -55,7 +64,7 @@ func (this *curIndex) GetPrice(id string) float64 {
 
 func (this *curIndex) download() {
 	conf := entity.GetConf()
-	url := conf.GetIndexUrl()
+	url := conf.GetCurIndex()
 	sliByte := entity.Get(url)
 	strData := string(sliByte)
 	sliData := strings.Split(strData, "(")

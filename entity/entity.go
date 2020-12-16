@@ -43,14 +43,17 @@ func Get(url string) (ret []byte) {
 }
 
 type conf struct {
-	IndexTips []string `json:"indexTips"`
-	IndexData []string `json:"indexData"`
-	IndexUrl  string   `json:"indexUrl"`
-	MixList   string   `json:"mixList"`
-	IndexList string   `json:"indexList"`
-	FundInfo  string   `json:"fundInfo"`
-	MixInfo   string   `json:"mixInfo"`
-	CostRate  string   `json:"costRate"`
+	IndexTopics  map[string]string `json:"indexTopics"`
+	CurIndex     string            `json:"curIndex"`
+	IndexTopic   string            `json:"indexTopic"`
+	MixList      string            `json:"mixList"`
+	IndexList    string            `json:"indexList"`
+	CurrencyList string            `json:"currencyList"`
+	FundHtml     string            `json:"fundHtml"`
+	FundJs       string            `json:"fundJs"`
+	Rate         string            `json:"rate"`
+	BasePrice    float64           `json:"basePrice"`
+	ForceUpdate  bool              `json:"forceUpdate"`
 }
 
 var g_conf *conf
@@ -62,29 +65,38 @@ func LoadConf(path string) error {
 	g_conf = new(conf)
 	return readFileUnMarshal(path, &g_conf)
 }
-func (this *conf) GetIndexTips() []string {
-	return this.IndexTips
+func (this *conf) GetIndexTopics() map[string]string {
+	return this.IndexTopics
 }
-func (this *conf) GetIndexData() []string {
-	return this.IndexData
+func (this *conf) GetCurIndex() string {
+	return this.CurIndex
 }
-func (this *conf) GetIndexUrl() string {
-	return this.IndexUrl
+func (this *conf) GetBasePrice() float64 {
+	return this.BasePrice
+}
+func (this *conf) GetForceUpdate() bool {
+	return this.ForceUpdate
+}
+func (this *conf) GetIndexTopic() string {
+	return this.IndexTopic
 }
 func (this *conf) GetMixList() string {
 	return this.MixList
 }
+func (this *conf) GetCurrencyList() string {
+	return this.CurrencyList
+}
 func (this *conf) GetIndexList() string {
 	return this.IndexList
 }
-func (this *conf) GetFundInfo() string {
-	return this.FundInfo
+func (this *conf) GetFundHtml() string {
+	return this.FundHtml
 }
-func (this *conf) GetMixInfo() string {
-	return this.MixInfo
+func (this *conf) GetFundJs() string {
+	return this.FundJs
 }
-func (this *conf) GetCostRate() string {
-	return this.CostRate
+func (this *conf) GetRate() string {
+	return this.Rate
 }
 
 func readFileUnMarshal(path string, ret interface{}) error {

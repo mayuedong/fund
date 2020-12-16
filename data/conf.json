@@ -1,0 +1,13 @@
+{
+	"indexTopics":{"399975":"证券公司","399986":"中证银行","399967":"中证军工","000905":"中证500","000300":"沪深300","000016":"上证50","399006":"创业板指","000001":"基本面","399707":"申万证券"}, 
+	"curIndex": "http://api.money.126.net/data/feed/0000001,0000300,0000905,0000016,1399006,1399967,1399986,1399707,money.api",
+  "indexTopic":"http://www.csindex.com.cn/zh-CN/search/index-derivatives?index_name=${code}",
+	"mixList": "https://fundapi.eastmoney.com/fundtradenew.aspx?ft=hh&sc=1n&st=desc&pi=1&pn=10000&fl=0&isab=1",
+	"indexList": "https://fundapi.eastmoney.com/fundtradenew.aspx?ft=zs&sc=1n&st=desc&pi=1&pn=10000&fl=0&isab=1",
+  "currencyList": "http://api.fund.eastmoney.com/FundTradeRank/GetHbRankList?MinsgType=&IsSale=1&strSortCol=SYL_1N&orderType=desc&pageSize=10000&pageIndex=1&intCompany=&debug=1234567",
+	"fundHtml": "http://fund.eastmoney.com/${code}.html?spm=search",
+	"fundJs": "http://fund.eastmoney.com/pingzhongdata/${code}.js?",
+  "rate":"http://fundf10.eastmoney.com/jjfl_${code}.html",
+  "basePrice":100.0,
+  "forceUpdate":false
+}

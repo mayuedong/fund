@@ -11,11 +11,8 @@ import (
 
 func main() {
 	if e := entity.LoadConf(os.Args[1]); nil != e {
-		entity.GetLog().Print(e)
+		entity.GetLog().Fatal(e)
 	}
-
-	fundMysql := util.GetFundMysql()
-	defer fundMysql.Close()
 
 	server := &http.Server{
 		Addr:         "0.0.0.0:9527",
@@ -24,5 +21,8 @@ func main() {
 		IdleTimeout:  time.Second * 10,
 		Handler:      new(search.Search),
 	}
+
+	util.RUN()
+	defer util.CLOSE()
 	server.ListenAndServe()
 }
