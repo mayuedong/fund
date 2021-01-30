@@ -32,12 +32,11 @@ func (r *Rate) GetRate(id string) float64 {
 	return ptr.Rate
 }
 
-func (r *Rate) Update(ids []string) {
-	var sli []APIUP
+func (r *Rate) Update(ids []string) (sli []APIUP) {
 	for _, id := range ids {
 		sli = append(sli, r.get(id))
 	}
-	setTask(sli)
+	return sli
 }
 
 func (this *Rate) getUptime() string {
@@ -49,7 +48,7 @@ func (this *Rate) getWait() int {
 }
 
 func (this *Rate) getUrl() string {
-	strUrl := entity.GetConf().GetRate()
+	strUrl := entity.GetConf().GetRateUrl()
 	return strings.Replace(strUrl, `${code}`, this.Id, -1)
 }
 

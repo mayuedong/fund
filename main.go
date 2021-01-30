@@ -16,9 +16,9 @@ func main() {
 
 	server := &http.Server{
 		Addr:         "0.0.0.0:9527",
-		WriteTimeout: time.Second * 10,
-		ReadTimeout:  time.Second * 10,
-		IdleTimeout:  time.Second * 10,
+		WriteTimeout: time.Second * 10000,
+		ReadTimeout:  time.Second * 10000,
+		IdleTimeout:  time.Second * 10000,
 		Handler:      new(search.Search),
 	}
 

@@ -17,19 +17,19 @@ type currency struct {
 	FundSize    string  `json:"管理规模"`
 	Year1       float64 `json:"近一年收益"`
 	Rate        float64 `json:"运作费用"`
+	Price       float64 `json:"起购金额"`
 }
 
 type currencyPool struct {
-	Pool  []*currency `json:"货币基金"`
-	Lt90  []*currency `json:"散户小于百分之九十"`
-	Lt100 []*currency `json:"规模小于100亿"`
+	Pool []*currency `json:"货币基金"`
 }
 
 func (this *currencyPool) search(req *request) {
 	this.get()
-	this.sort()
 	this.filter()
 	this.delSliNil()
+	this.sort()
+	this.Pool = this.Pool[:int(len(this.Pool)/3)]
 }
 func (this *currencyPool) get() {
 	fh := new(util.FundHtml)
@@ -41,6 +41,7 @@ func (this *currencyPool) get() {
 		tmp.Id = v.Id
 		tmp.Name = v.Name
 		tmp.Year1 = v.GetYear1()
+		tmp.Price = v.GetPrice()
 		tmp.Scale = fh.GetScale(v.Id)
 		tmp.Rate = rate.GetRate(v.Id)
 		tmp.FoundDate = fh.GetFoundDate(v.Id)
@@ -53,7 +54,7 @@ func (this *currencyPool) get() {
 }
 func (this *currencyPool) filter() {
 	for i, v := range this.Pool {
-		if 10 > v.Scale {
+		if 10 > v.Scale || 1e5 < v.Price {
 			this.Pool[i] = nil
 		}
 	}

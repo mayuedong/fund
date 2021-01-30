@@ -10,7 +10,8 @@ type (
 	CurrencyList struct {
 		Id    string `json:"FCODE"`
 		Name  string `json:"SHORTNAME"`
-		Year1 string `json:"SYL_JN"`
+		Year1 string `json:"SYL_1N"`
+		Price string `json:"MINSG"`
 	}
 	CurrencyListData struct {
 		Data []*CurrencyList `json:"Data"`
@@ -29,6 +30,10 @@ func (r *CurrencyList) Get() (sli []*CurrencyList) {
 	return sli
 }
 
+func (this *CurrencyList) GetPrice() float64 {
+	price, _ := strconv.ParseFloat(this.Price, 64)
+	return price
+}
 func (this *CurrencyList) GetYear1() float64 {
 	year1, _ := strconv.ParseFloat(this.Year1, 64)
 	return year1

@@ -51,8 +51,10 @@ type conf struct {
 	CurrencyList string            `json:"currencyList"`
 	FundHtml     string            `json:"fundHtml"`
 	FundJs       string            `json:"fundJs"`
-	Rate         string            `json:"rate"`
+	RateUrl      string            `json:"rateUrl"`
 	BasePrice    float64           `json:"basePrice"`
+	Rate         float64           `json:"rate"`
+	Limit        float64           `json:"limit"`
 	ForceUpdate  bool              `json:"forceUpdate"`
 }
 
@@ -64,6 +66,12 @@ func GetConf() *conf {
 func LoadConf(path string) error {
 	g_conf = new(conf)
 	return readFileUnMarshal(path, &g_conf)
+}
+func (this *conf) GetRate() float64 {
+	return this.Rate
+}
+func (this *conf) GetLimit() float64 {
+	return this.Limit
 }
 func (this *conf) GetIndexTopics() map[string]string {
 	return this.IndexTopics
@@ -95,8 +103,8 @@ func (this *conf) GetFundHtml() string {
 func (this *conf) GetFundJs() string {
 	return this.FundJs
 }
-func (this *conf) GetRate() string {
-	return this.Rate
+func (this *conf) GetRateUrl() string {
+	return this.RateUrl
 }
 
 func readFileUnMarshal(path string, ret interface{}) error {

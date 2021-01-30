@@ -113,10 +113,10 @@ func (this *FundJs) parsePerson(str string) {
 func (this *FundJs) parse(b []byte) error {
 	lines := strings.Split(string(b), ";")
 	this.Uptime = time.Now().AddDate(0, 0, 5+rand.Intn(8)+rand.Intn(8)).String()[:len("2020-12-12")]
-	if 25 > len(lines) {
+	if 21 < len(lines) && len(lines) < 25 {
 		this.parseHold(lines[19])
 		this.parsePerson(lines[21])
-	} else {
+	} else if 24 < len(lines) {
 		this.parseHold(lines[21])
 		this.parsePerson(lines[24])
 	}
@@ -125,12 +125,11 @@ func (this *FundJs) parse(b []byte) error {
 	return db.SET(this.Id, this)
 }
 
-func (r *FundJs) Update(ids []string) {
-	var sli []APIUP
+func (r *FundJs) Update(ids []string) (sli []APIUP) {
 	for _, id := range ids {
 		sli = append(sli, r.get(id))
 	}
-	setTask(sli)
+	return sli
 }
 func (this *FundJs) getUptime() string {
 	return this.Uptime

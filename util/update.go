@@ -8,7 +8,7 @@ type Update struct {
 	mix      []*MixList
 	index    []*IndexList
 	currency []*CurrencyList
-	turnover []*Turnover
+	history  []*History
 }
 
 func (this *Update) getAllId() (ids []string) {
@@ -26,11 +26,11 @@ func (this *Update) getAllId() (ids []string) {
 
 func (this *Update) AutoUp() {
 	history := new(History)
-	this.turnover = history.Get()
-	if 0 == len(this.turnover) {
+	this.history = history.Get()
+	if 0 == len(this.history) {
 		history.Update(nil)
-		this.turnover = history.Get()
-		if 0 == len(this.turnover) {
+		this.history = history.Get()
+		if 0 == len(this.history) {
 			entity.GetLog().Fatal("Update history error")
 		}
 	}
@@ -67,13 +67,17 @@ func (this *Update) AutoUp() {
 
 	ids := this.getAllId()
 	this.delOverdue(fundHtmlTable, ids)
-	new(FundHtml).Update(ids)
+	sliHtml := new(FundHtml).Update(ids)
 
 	this.delOverdue(fundJsTable, ids)
-	new(FundJs).Update(ids)
+	sliJs := new(FundJs).Update(ids)
 
 	this.delOverdue(rateTable, ids)
-	new(Rate).Update(ids)
+	sliRate := new(Rate).Update(ids)
+
+	sliHtml = append(sliHtml, sliJs...)
+	sliHtml = append(sliHtml, sliRate...)
+	setTask(sliHtml)
 }
 
 func (this *Update) delOverdue(table string, ids []string) {

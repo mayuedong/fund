@@ -12,19 +12,27 @@ import (
 	"strings"
 )
 
-type History struct {
-}
+type (
+	HisNode struct {
+		Time  string  `json:"t"`
+		Index float64 `json:"v"`
+	}
+	History struct {
+		Id    string     `json:"id"`
+		Nodes []*HisNode `json:"node"`
+	}
+)
 
-func (r *History) Get() (sli []*Turnover) {
+func (r *History) Get() (ret []*History) {
 	db := GetSqlite(historyTable)
 	defer db.CLOSE()
 	keys := db.KEYS()
 	for _, key := range keys {
-		ptr := new(Turnover)
-		db.GET(key, ptr)
-		sli = append(sli, ptr)
+		p := new(History)
+		db.GET(key, p)
+		ret = append(ret, p)
 	}
-	return sli
+	return ret
 }
 
 func (r *History) Update(ids []string) {
@@ -47,106 +55,137 @@ func (r *History) Update(ids []string) {
 			return
 		}
 
-		var sli []float64
+		ph := new(History)
+		ph.Id = fname
 		lines := strings.Split(string(b), "\n")
 		for _, line := range lines {
 			line = strings.TrimLeft(line, `",`)
 			elements := strings.Split(line, ",")
-			if 5 < len(elements) && "2010-12-31" < elements[0] {
+			if 5 < len(elements) && "2010-12-31" < elements[0] && elements[0] < "2021-01-01" {
 				if price, err := strconv.ParseFloat(elements[2], 64); nil == err {
-					sli = append(sli, price)
+					node := new(HisNode)
+					node.Time = elements[0]
+					node.Index = price
+					ph.Nodes = append(ph.Nodes, node)
 				}
 			}
 		}
-		r.parse(fname, sli)
+		db := GetSqlite(historyTable)
+		db.SET(fname, ph)
+		db.CLOSE()
 	}
 }
 
-func (r *History) parse(k string, sli []float64) {
-	for i := 0; i < len(sli); i++ {
-		for j := i + 1; j < len(sli); j++ {
-			if sli[i] > sli[j] {
-				sli[i], sli[j] = sli[j], sli[i]
-			}
-		}
+type HisInfo struct {
+	History
+	Asc   []*HisNode
+	Max   int
+	Min   int
+	Build int
+	Plus  int
+}
+
+var g_hisInfo []*HisInfo
+
+func GetHisInfo() []*HisInfo {
+	if 0 == len(g_hisInfo) {
+		new(HisInfo).parse()
 	}
-
-	ptr := new(Turnover)
-	ptr.Index = sli
-
-	l := len(ptr.Index)
-	ptr.Id = k
-	ptr.Low = ptr.Index[0]
-	ptr.High = ptr.Index[l-1]
-	ptr.Medium = ptr.Index[int(0.75*float64(l))]
-	ptr.SeMe = ptr.High - (ptr.High-ptr.Low)*6.0/7.0
-	db := GetSqlite(historyTable)
-	db.SET(k, ptr)
-	db.CLOSE()
+	return g_hisInfo
 }
-
-type Turnover struct {
-	Id     string
-	High   float64
-	Medium float64
-	Low    float64
-	SeMe   float64
-	Index  []float64
-}
-
-func (this *Turnover) Get(id string) *Turnover {
-	db := GetSqlite(historyTable)
-	defer db.CLOSE()
-	ptr := new(Turnover)
-	db.GET(id, ptr)
-	return ptr
-}
-
-type TestInvest struct {
-	Id       string            `json:"指数代码"`
-	Name     string            `json:"指数名称"`
-	Medium   float64           `json:"建仓点"`
-	SeMe     float64           `json:"加仓点"`
-	Interval int               `json:"间隔"`
-	Invest   map[string]string `json:"建仓表"`
-}
-
-func (r *Turnover) Test() (ret []*TestInvest) {
-	topics := entity.GetConf().GetIndexTopics()
+func (r *HisInfo) parse() {
 	sli := new(History).Get()
-	for _, ptr := range sli {
-		node := new(TestInvest)
-		node.Invest = make(map[string]string)
-		node.Id = ptr.Id
-		node.Medium = ptr.Medium
-		node.SeMe = ptr.SeMe
-		node.Name = topics[ptr.Id]
-		interval := len(ptr.Index) / 40
-		node.Interval = interval
-		for i, j := 0, interval; j < len(ptr.Index); i, j = i+interval, j+interval {
-			if ptr.GetRate(ptr.Index[i]) < int(entity.GetConf().GetBasePrice()) {
-				break
+	for i := 0; i < len(sli); i++ {
+		ptr := new(HisInfo)
+		ptr.Id = sli[i].Id
+		ptr.Nodes = sli[i].Nodes
+		aux := make([]*HisNode, len(sli[i].Nodes))
+		copy(aux, sli[i].Nodes)
+		for i := 0; i < len(aux); i++ {
+			for j := i + 1; j < len(aux); j++ {
+				if aux[i].Index > aux[j].Index {
+					aux[i], aux[j] = aux[j], aux[i]
+				}
 			}
-			key := fmt.Sprintf("%.1f~%.1f", ptr.Index[i], ptr.Index[j])
-			val := fmt.Sprintf("%d~%d", ptr.GetRate(ptr.Index[i]), ptr.GetRate(ptr.Index[j]))
-			node.Invest[key] = val
 		}
-		ret = append(ret, node)
+		ptr.Max = len(aux) - 1
+		ptr.Min = 0
+		ptr.Build = int(0.75 * float64(ptr.Max))
+		ptr.Plus = int(0.3 * float64(ptr.Max))
+		ptr.Asc = aux
+		g_hisInfo = append(g_hisInfo, ptr)
+	}
+}
+
+func (this *HisInfo) calcMultiple() (sumOut, sumIn, n float64) {
+	max := this.Asc[this.Max].Index
+	for i := this.Min; i <= this.Build; i++ {
+		price := this.GetPrice(this.Asc[i].Index)
+		sumIn += price
+		sumOut += price * max / this.Asc[i].Index
+		if price == math.NaN() {
+			fmt.Println(this.Plus, this.Build)
+		}
+	}
+	n = sumOut / sumIn
+	return sumIn, sumOut, n
+}
+
+func (this *HisInfo) GetPrice(cur float64) float64 {
+	build := this.Asc[this.Build].Index
+	plus := this.Asc[this.Plus].Index
+	min := this.Asc[this.Min].Index
+	rate := 0.0
+	if cur <= plus {
+		rate = (plus - cur) / (plus - min)
+		rate = rate*4.2 + 3.8
+	} else {
+		rate = (build - cur) / (build - plus)
+		rate *= 3.8
+	}
+	return math.Pow(2.0, rate) * entity.GetConf().GetBasePrice()
+}
+
+func (r *HisInfo) Test() (ret []*Invest) {
+	topics := entity.GetConf().GetIndexTopics()
+	sli := GetHisInfo()
+	for _, v := range sli {
+		ptr := new(Invest)
+		ret = append(ret, ptr)
+		ptr.Id = v.Id
+		ptr.Name = topics[v.Id]
+		ptr.Min = v.Asc[v.Min].Index
+		ptr.Max = v.Asc[v.Max].Index
+		ptr.ExpectMultiple = ptr.Max / ptr.Min
+		ptr.Build = v.Asc[v.Build].Index
+		ptr.Plus = v.Asc[v.Plus].Index
+		ptr.SumIn, ptr.SumOut, ptr.RealityMultiple = v.calcMultiple()
+		ptr.MultipleErr = ptr.RealityMultiple / ptr.ExpectMultiple
+		ptr.setGroup(v)
 	}
 	return ret
 }
 
-func (this *Turnover) GetRate(cur float64) int {
-	base := entity.GetConf().GetBasePrice()
-	ptr := this.Get("000001")
-	setUpPlus := (2.0 * base / ptr.Medium) / (1.0 - ptr.SeMe/ptr.Medium)
-	addPlus := (1.0 * base / ptr.SeMe) / (1.0 - ptr.Low/ptr.SeMe)
+type Invest struct {
+	Id              string   `json:"指数代码"`
+	Name            string   `json:"指数名称"`
+	Build           float64  `json:"建仓点"`
+	Plus            float64  `json:"加仓点"`
+	Max             float64  `json:"最高点"`
+	Min             float64  `json:"最低点"`
+	ExpectMultiple  float64  `json:"定额倍数"`
+	SumIn           float64  `json:"本金"`
+	SumOut          float64  `json:"本息"`
+	RealityMultiple float64  `json:"差额倍数"`
+	MultipleErr     float64  `json:"倍数误差"`
+	Group           []string `json:"群落"`
+}
 
-	rate := 0.0
-	if cur <= this.SeMe {
-		rate = (1.0-cur/this.SeMe)/(1.0-this.Low/this.SeMe)/addPlus + 1.0/setUpPlus
-	} else {
-		rate = (1.0 - cur/this.Medium) / (1.0 - this.SeMe/this.Medium) / setUpPlus
+func (this *Invest) setGroup(in *HisInfo) {
+	for cur := in.Asc[in.Max].Index; cur >= in.Asc[in.Min].Index; cur -= 100 {
+		price := in.GetPrice(cur)
+		if entity.GetConf().GetBasePrice()*0.9 < price {
+			this.Group = append(this.Group, fmt.Sprintf("%.1f:%.1f", cur, price))
+		}
 	}
-	return int(math.Pow(2.0, rate) * base)
 }

@@ -6,7 +6,9 @@ import (
 )
 
 type request struct {
-	St string
+	St    string
+	Money string
+	Years string
 }
 
 func (this *request) getSt() string {
@@ -22,4 +24,6 @@ func (this *request) parseQuery(inQuery string) {
 		}
 	}
 	this.St = mapQuery["st"]
+	this.Money = mapQuery["money"]
+	this.Years = mapQuery["years"]
 }

@@ -55,12 +55,11 @@ func (this *FundHtml) getUrl() string {
 	return strings.Replace(strUrl, `${code}`, this.Id, -1)
 }
 
-func (r *FundHtml) Update(ids []string) {
-	var sli []APIUP
+func (r *FundHtml) Update(ids []string) (sli []APIUP) {
 	for _, id := range ids {
 		sli = append(sli, r.get(id))
 	}
-	setTask(sli)
+	return sli
 }
 
 func (r *FundHtml) GetScale(id string) float64 {
