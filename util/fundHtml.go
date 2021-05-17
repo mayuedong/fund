@@ -46,6 +46,13 @@ func (this *FundHtml) getUptime() string {
 	return this.Uptime
 }
 
+func (r *FundHtml) GetUpTime(id string) string {
+	if p := r.get(id); nil != p {
+		return p.Uptime
+	}
+	return ""
+}
+
 func (this *FundHtml) getWait() int {
 	return -30
 }

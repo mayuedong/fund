@@ -59,10 +59,8 @@ func setTask(sli []APIUP) {
 
 func Download(task APIUP) {
 	url := task.getUrl()
-	entity.GetLog().Println("url:", url, "uptime:", task.getUptime())
-	time.Sleep(time.Duration(rand.Intn(5)+rand.Intn(5)+2) * time.Second)
-	b := entity.Get(url)
-	if err := task.parse(b); nil != err {
+	entity.GetLog().Println("url:", url, "oldUpTime:", task.getUptime())
+	if err := task.parse(entity.Get(url)); nil != err {
 		entity.GetLog().Println(err)
 	}
 }
@@ -72,8 +70,8 @@ func RUN() {
 	go func() {
 		l := len("2020-12-12")
 		for {
-			tasks := getTask()
 			entity.GetLog().Println("update start.")
+			tasks := getTask()
 			for i := 0; i < len(tasks); i++ {
 				for j := i + 1; j < len(tasks); j++ {
 					if tasks[i].getUptime() > tasks[j].getUptime() {
@@ -82,27 +80,29 @@ func RUN() {
 				}
 			}
 
-			now := time.Now()
-			for i, task := range tasks {
-				upTime := task.getUptime()
-				if i < 300 && entity.GetConf().GetForceUpdate() && now.AddDate(0, 0, -10).String()[:l] > upTime || now.AddDate(0, 0, task.getWait()).String()[:l] > upTime {
-					Download(task)
-				} else {
-					break
+		LOOP:
+			for _, task := range tasks {
+				interval := time.Duration(rand.Intn(10)+1) * time.Second
+				tick := time.NewTicker(interval)
+				for now := range tick.C {
+					tick.Stop()
+					upTime := task.getUptime()
+					if entity.GetConf().GetForceUpdate() && now.AddDate(0, 0, -10).String()[:l] > upTime || now.AddDate(0, 0, task.getWait()).String()[:l] > upTime {
+						Download(task)
+						break
+					} else {
+						entity.GetLog().Println("update end.")
+						break LOOP
+					}
 				}
 			}
-			entity.GetLog().Println("update end.")
 		}
 	}()
 
 	go func() {
-		ch := time.Tick(4 * time.Hour)
-		new(Update).AutoUp()
-		for {
-			select {
-			case <-ch:
-				new(Update).AutoUp()
-			}
+		for now := range time.Tick(1 * time.Hour) {
+			_ = now
+			new(Update).AutoUp()
 		}
 	}()
 }

@@ -6,48 +6,15 @@ import (
 	"strings"
 )
 
-type mix struct {
-	Id          string            `json:"基金代码"`
-	Name        string            `json:"基金名称"`
-	Scale       float64           `json:"基金规模"`
-	Manager     string            `json:"基金经理"`
-	FundSize    string            `json:"管理规模"`
-	ManagerDate int               `json:"基金经理管理天数"`
-	FoundDate   int               `json:"基金成立天数"`
-	HoldPe      float64           `json:"散户持有百分比"`
-	Rate        float64           `json:"运作费用"`
-	Year1       float64           `json:"近一年收益"`
-	Year2       float64           `json:"近二年收益"`
-	Year3       float64           `json:"近三年收益"`
-	Stock       map[string]string `json:"重仓股"`
-}
-
 type mixPool struct {
-	Pool           []*mix `json:"混合型基金"`
-	Achievement    []*mix `json:"绩效优秀"`
-	DisAchievement []*mix `json:"绩效稍逊"`
+	Pool    []fund `json:"混合型基金"`
+	PoolMin []fund `json:"小盘"`
+	PoolMax []fund `json:"大盘"`
 }
 
 func (this *mixPool) search(req *request) {
 	this.get()
 	this.filter()
-	this.delSliNil()
-	this.sortOut()
-	this.delSliNil()
-}
-func (this *mixPool) sortOut() {
-	this.Achievement = this.filterAchievement(2)
-	this.DisAchievement = this.disAchievement(2)
-	var sli []*mix
-	sli = append(sli, this.Achievement...)
-	sli = append(sli, this.DisAchievement...)
-	for _, s := range sli {
-		for i, p := range this.Pool {
-			if p == s {
-				this.Pool[i] = nil
-			}
-		}
-	}
 }
 func (this *mixPool) get() {
 	fh := new(util.FundHtml)
@@ -62,6 +29,7 @@ func (this *mixPool) get() {
 		tmp.Year2 = v.Year2
 		tmp.Year3 = v.Year3
 		tmp.Rate = rate.GetRate(v.Id)
+		tmp.UpTime = fh.GetUpTime(v.Id)
 		tmp.Scale = fh.GetScale(v.Id)
 		tmp.FoundDate = fh.GetFoundDate(v.Id)
 		tmp.ManagerDate = fh.GetManagerDate(v.Id)
@@ -73,168 +41,61 @@ func (this *mixPool) get() {
 	}
 }
 func (this *mixPool) filter() {
-	this.Pool = this.filterAchievement(4)
-	this.filterScale()
-	this.filterWorkTime()
-	this.filterUserName()
-	//this.filterFundSize()
-	this.filterFoundTime()
-}
-func (this *mixPool) filterAchievement(rank int) []*mix {
-	sli := this.Pool
-	l := int(len(sli) / rank)
-	var good1, good2, good3, good []*mix
-	for i := 0; i < len(sli); i++ {
-		for j := i + 1; j < len(sli); j++ {
-			if sli[i].Year1 < sli[j].Year1 {
-				sli[i], sli[j] = sli[j], sli[i]
-			}
-		}
-	}
-	good1 = append(good1, sli[:l]...)
-
-	for i := 0; i < len(sli); i++ {
-		for j := i + 1; j < len(sli); j++ {
-			if sli[i].Year2 < sli[j].Year2 {
-				sli[i], sli[j] = sli[j], sli[i]
-			}
-		}
-	}
-	good2 = append(good2, sli[:l]...)
-
-	for i := 0; i < len(sli); i++ {
-		for j := i + 1; j < len(sli); j++ {
-			if sli[i].Year3 < sli[j].Year3 {
-				sli[i], sli[j] = sli[j], sli[i]
-			}
-		}
-	}
-	good3 = append(good3, sli[:l]...)
-
-	for _, g1 := range good1 {
-		for _, g2 := range good2 {
-			for _, g3 := range good3 {
-				if g1 == g2 && g2 == g3 {
-					good = append(good, g1)
-				}
-			}
-		}
-	}
-	return good
-}
-func (this *mixPool) disAchievement(rank int) []*mix {
-	sli := this.Pool
-	l := int(len(sli) / rank)
-	var good1, good2, good3, good []*mix
-	for i := 0; i < len(sli); i++ {
-		for j := i + 1; j < len(sli); j++ {
-			if sli[i].Year1 < sli[j].Year1 {
-				sli[i], sli[j] = sli[j], sli[i]
-			}
-		}
-	}
-	good1 = append(good1, sli[l:]...)
-
-	for i := 0; i < len(sli); i++ {
-		for j := i + 1; j < len(sli); j++ {
-			if sli[i].Year2 < sli[j].Year2 {
-				sli[i], sli[j] = sli[j], sli[i]
-			}
-		}
-	}
-	good2 = append(good2, sli[l:]...)
-
-	for i := 0; i < len(sli); i++ {
-		for j := i + 1; j < len(sli); j++ {
-			if sli[i].Year3 < sli[j].Year3 {
-				sli[i], sli[j] = sli[j], sli[i]
-			}
-		}
-	}
-	good3 = append(good3, sli[l:]...)
-
-	for _, g1 := range good1 {
-		for _, g2 := range good2 {
-			for _, g3 := range good3 {
-				if g1 == g2 && g2 == g3 {
-					good = append(good, g1)
-				}
-			}
-		}
-	}
-	return good
-}
-func (this *mixPool) filterScale() {
-	for i, v := range this.Pool {
-		if nil == v {
-			continue
-		}
-		if 35.0 > v.Scale*0.01*v.HoldPe {
-			this.Pool[i] = nil
-		}
-	}
-}
-
-func (this *mixPool) filterFoundTime() {
-	for i, v := range this.Pool {
-		if nil == v {
-			continue
-		}
-		if v.FoundDate < 5*365 {
-			this.Pool[i] = nil
-		}
-	}
-}
-
-func (this *mixPool) filterWorkTime() {
-	for i, v := range this.Pool {
-		if nil == v {
-			continue
-		}
-		if v.ManagerDate < 2*365 {
-			this.Pool[i] = nil
-		}
-	}
-}
-
-func (this *mixPool) filterFundSize() {
-	for i, v := range this.Pool {
-		if nil == v {
-			continue
-		}
-
-		sliSize := strings.Split(v.FundSize, "(")
+	this.Pool = this.filterAchievement(2)
+	this.Pool = filter(this.Pool, func(v fund) bool { return 40.0 < v.getScale() })
+	this.Pool = filter(this.Pool, func(v fund) bool { return v.getManagerDate() > 2*365 })
+	this.Pool = filter(this.Pool, func(v fund) bool { return !strings.Contains(v.getManager(), "&") })
+	this.Pool = filter(this.Pool, func(v fund) bool { return v.getFoundDate() > 5*365 })
+	this.Pool = filter(this.Pool, func(v fund) bool {
+		sliSize := strings.Split(v.getFundSize(), "(")
 		if 1 < len(sliSize) {
 			pos := strings.Index(sliSize[1], "只")
 			if -1 != pos {
 				num, _ := strconv.Atoi(sliSize[1][:pos])
-				if 5 < num {
-					this.Pool[i] = nil
+				return num < 7
+			}
+		}
+		return true
+	})
+	this.Pool = this.filterAchievement(2)
+	this.PoolMax = filter(this.Pool, func(v fund) bool { return v.getScale() >= 100 })
+	this.PoolMin = filter(this.Pool, func(v fund) bool { return v.getScale() < 100 })
+	this.Pool = nil
+}
+func (this *mixPool) filterAchievement(rank int) []fund {
+	good1 := sort(this.Pool, func(max, min fund) bool { return max.getYear1() > min.getYear1() })
+	good2 := sort(this.Pool, func(max, min fund) bool { return max.getYear2() > min.getYear2() })
+	good3 := sort(this.Pool, func(max, min fund) bool { return max.getYear3() > min.getYear3() })
+
+	l := int(len(this.Pool)/rank + 1)
+	good1 = good1[:l]
+	good2 = good2[:l]
+	good3 = good3[:l]
+
+	var good []fund
+	for _, g3 := range good3 {
+	LOOP:
+		for _, g2 := range good2 {
+			if g2 == g3 {
+				for _, g1 := range good1 {
+					if g1 == g2 {
+						good = append(good, g3)
+						break LOOP
+					}
 				}
 			}
 		}
 	}
-}
-
-func (this *mixPool) filterUserName() {
-	for i, v := range this.Pool {
-		if nil == v {
-			continue
-		}
-		if strings.Contains(v.Manager, "&") {
-			this.Pool[i] = nil
-		}
-	}
+	return good
 }
 
 func (this *mixPool) delSliNil() {
-	pos := -1
+	pos := 0
 	for _, v := range this.Pool {
 		if nil != v {
-			pos++
 			this.Pool[pos] = v
+			pos++
 		}
 	}
-	this.Pool = append(this.Pool, nil)
-	this.Pool = this.Pool[:pos+1]
+	this.Pool = this.Pool[:pos]
 }

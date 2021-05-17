@@ -66,33 +66,11 @@ func (this *Update) AutoUp() {
 	}
 
 	ids := this.getAllId()
-	this.delOverdue(fundHtmlTable, ids)
 	sliHtml := new(FundHtml).Update(ids)
-
-	this.delOverdue(fundJsTable, ids)
 	sliJs := new(FundJs).Update(ids)
-
-	this.delOverdue(rateTable, ids)
 	sliRate := new(Rate).Update(ids)
 
 	sliHtml = append(sliHtml, sliJs...)
 	sliHtml = append(sliHtml, sliRate...)
 	setTask(sliHtml)
-}
-
-func (this *Update) delOverdue(table string, ids []string) {
-	db := GetSqlite(table)
-	defer db.CLOSE()
-	keys := db.KEYS()
-	for _, key := range keys {
-		i := 0
-		for ; i < len(ids); i++ {
-			if key == ids[i] {
-				break
-			}
-		}
-		if i == len(ids) {
-			db.DELETE(key)
-		}
-	}
 }
