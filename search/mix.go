@@ -42,10 +42,7 @@ func (this *mixPool) get() {
 }
 func (this *mixPool) filter() {
 	this.Pool = this.filterAchievement(2)
-	this.Pool = filter(this.Pool, func(v fund) bool { return 40.0 < v.getScale() })
-	this.Pool = filter(this.Pool, func(v fund) bool { return v.getManagerDate() > 2*365 })
-	this.Pool = filter(this.Pool, func(v fund) bool { return !strings.Contains(v.getManager(), "&") })
-	this.Pool = filter(this.Pool, func(v fund) bool { return v.getFoundDate() > 5*365 })
+	this.Pool = filter(this.Pool, func(v fund) bool { return (40.0 < v.getScale())&&(v.getManagerDate() > 2*365)&&(!strings.Contains(v.getManager(), "&"))&&(v.getFoundDate() > 5*365) })
 	this.Pool = filter(this.Pool, func(v fund) bool {
 		sliSize := strings.Split(v.getFundSize(), "(")
 		if 1 < len(sliSize) {
